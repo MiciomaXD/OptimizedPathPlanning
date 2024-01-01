@@ -12,7 +12,7 @@ public class RandomMapGenerator : MonoBehaviour
     [SerializeField]
     Transform parentOfObstacles;
 
-    public int minObstacles, maxObstacles, seed = 9516;
+    public int minObstacles, maxObstacles, seed = 9516, times = 1;
 
     public List<GameObject> obstacles;
 
@@ -39,14 +39,16 @@ public class RandomMapGenerator : MonoBehaviour
         maxY = mapBounds.max.y;
         maxZ = mapBounds.max.z;
 
-        StartCoroutine(DoCreateMap(5f));
+        //StartCoroutine(DoCreateMap(5f));
     }
 
     IEnumerator DoCreateMap(float wait)
     {
-        while (true)
+        int counter = 0;
+        while (counter < times)
         {
             CreateMap();
+            counter++;
             yield return new WaitForSeconds(wait);
         }
     }

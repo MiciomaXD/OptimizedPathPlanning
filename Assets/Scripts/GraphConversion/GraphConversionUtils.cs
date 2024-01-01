@@ -27,6 +27,11 @@ public static class GraphConversionUtils
         return string.Join(",", a);
     }
 
+    public static NavMeshGraph Mesh2Graph(Mesh m)
+    {
+        throw new NotImplementedException();
+    }
+
     public static void SaveGraph()
     {
         throw new NotImplementedException();
