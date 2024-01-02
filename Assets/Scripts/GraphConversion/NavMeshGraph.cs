@@ -65,7 +65,6 @@ public class NavMeshGraph
                     AddEdge(r.Id, kvp.Key);
                     AddEdge(kvp.Key, r.Id);
                 }
-
             }
         }
     }

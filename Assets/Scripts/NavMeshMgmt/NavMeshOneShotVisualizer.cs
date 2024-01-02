@@ -4,7 +4,6 @@ using UnityEngine.AI;
 public class NavMeshOneShotVisualizer : MonoBehaviour
 {
     public Material visualizerMat;
-    public Shader visualizerShader;
 
     void Start()
     {
@@ -14,6 +13,6 @@ public class NavMeshOneShotVisualizer : MonoBehaviour
 
         Mesh navMeshMesh = NavMeshUtils.CreateMeshFromTriangulation(navMeshData);
 
-        NavMeshUtils.VisualizeMesh(navMeshMesh, visualizerMat, true, visualizerShader);
+        NavMeshUtils.VisualizeMesh(navMeshMesh, visualizerMat, true);
     }
 }

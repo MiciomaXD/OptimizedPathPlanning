@@ -26,7 +26,7 @@ public static class NavMeshUtils
         return mesh;
     }
 
-    public static void VisualizeMesh(Mesh m, Material mat, bool visualizeVertices = false, Shader shader = null)
+    public static void VisualizeMesh(Mesh m, Material mat, bool visualizeVertices = false)
     {
         if (visualizeVertices)
         {
@@ -40,8 +40,6 @@ public static class NavMeshUtils
         navMeshObject.AddComponent<MeshFilter>().mesh = m;
         navMeshObject.AddComponent<MeshRenderer>();
         navMeshObject.GetComponent<MeshRenderer>().material = mat;
-        if (shader != null)
-            navMeshObject.GetComponent<MeshRenderer>().material.shader = shader;
         navMeshObject.transform.position += new Vector3(0, 0.01f, 0);
     }
 }
