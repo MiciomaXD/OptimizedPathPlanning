@@ -26,20 +26,27 @@ public static class NavMeshUtils
         return mesh;
     }
 
-    public static void VisualizeMesh(Mesh m, Material mat, bool visualizeVertices = false)
+    public static GameObject VisualizeMesh(Mesh m, Material mat, bool visualizeVertices = false)
     {
         if (visualizeVertices)
         {
-            foreach (var v in m.vertices)
+            Vector3[] verts = m.vertices;
+            foreach (var v in verts)
             {
                 Debug.DrawRay(v, Vector3.up * 2, Color.red, Mathf.Infinity);
             }
         }
 
-        GameObject navMeshObject = new GameObject("NavMeshVisualizer");
+        GameObject navMeshObject = GameObject.Find("NavMeshVisualizer");
+        if (navMeshObject != null)
+            GameObject.Destroy(navMeshObject);
+        
+        navMeshObject = new GameObject("NavMeshVisualizer");
         navMeshObject.AddComponent<MeshFilter>().mesh = m;
         navMeshObject.AddComponent<MeshRenderer>();
         navMeshObject.GetComponent<MeshRenderer>().material = mat;
         navMeshObject.transform.position += new Vector3(0, 0.01f, 0);
+
+        return navMeshObject;
     }
 }

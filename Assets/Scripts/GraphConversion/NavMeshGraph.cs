@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEditor.Animations;
@@ -12,9 +13,40 @@ public class NavMeshGraph
 
     public NavMeshGraph()
     {
-        this.nodes = new();
-        this.edges = new();
-        this.connectivity = new();
+        nodes = new();
+        edges = new();
+        connectivity = new();
+    }
+
+    public NavMeshGraph(Mesh m)
+    {
+        nodes = new();
+        connectivity = new();
+        edges = new();
+
+        int[] triss = m.triangles;
+        Vector3[] verts = m.vertices;
+        for (int i = 0; i < triss.Length; i += 3)
+        {
+            int v1_ix = triss[i];
+            int v2_ix = triss[i + 1];
+            int v3_ix = triss[i + 2];
+
+            NavMeshPolygon r = new(verts[v1_ix], verts[v2_ix], verts[v3_ix]);
+
+            foreach (var kvp in nodes)
+            {
+                if (r.IsAdjacent(kvp.Value))
+                {
+                    //bidirectional
+                    PolygonEdge e = new(r.Id, kvp.Key, directional: false);
+                    AddEdge(r.Id, kvp.Key, e);
+
+                }
+            }
+
+            AddNode(r);
+        }
     }
 
     public bool[,] ToAdjMat()
@@ -34,100 +66,153 @@ public class NavMeshGraph
         nodes.Add(n.Id, n);
     }
 
-    public void AddEdge(int from, int to, PolygonEdge e = null)
+    public void AddEdge(int from, int to, PolygonEdge e)
     {
         edges.Add(e.Id, e);
+
         connectivity.Add((from, to), e.Id);
+        if (!e.Directional)
+        {
+            connectivity.Add((to, from), e.Id);
+        }
     }
 
-    public void Mesh2Graph(Mesh m)
+    public void VisualizeGraphInScene(Material edgeMat)
     {
-        nodes.Clear();
-        connectivity.Clear();
-        edges.Clear();
+        GameObject gRoot = new GameObject("GraphVisRoot");
 
-        int[] triss = m.triangles;
-        Vector3[] verts = m.vertices;
-        for (int i = 0; i < triss.Length - 3; i++)
-        {
-            int v1_i = triss[i + 0];
-            int v2_i = triss[i + 1];
-            int v3_i = triss[i + 2];
+        var barycenters = nodes.Values
+            .Select(x => new { name = x.Id, barycenter = x.GetBarycenter() });
 
-            NavMeshPolygon r = new(verts[v1_i], verts[v2_i], verts[v3_i]);
-            nodes.Add(r.Id, r);
+        Vector3 centerOfGraph = barycenters
+            .Aggregate(Vector3.zero, (acc, next) => acc += next.barycenter, summation => summation / nodes.Values.Count);
+        gRoot.transform.position = centerOfGraph;
 
-            foreach (var kvp in nodes)
-            {
-                if (r.IsAdjacent(kvp.Value))
+        GameObject[] nodesVisGOs = barycenters
+            .Select(x =>
                 {
-                    //bidirectional
-                    AddEdge(r.Id, kvp.Key);
-                    AddEdge(kvp.Key, r.Id);
+                    GameObject go = new GameObject(x.name.ToString());
+                    go.transform.position = x.barycenter;
+                    go.transform.parent = gRoot.transform;
+                    return go;
                 }
-            }
+            ).ToArray();
+
+        //draw edges
+        foreach (var kvp in connectivity)
+        {
+            (int, int) couple = kvp.Key;
+
+            Transform parent = nodesVisGOs.Where(x => x.name == couple.Item1.ToString())
+                .Select(x => x.transform).First();
+
+            Transform otherGO = nodesVisGOs.Where(x => x.name == couple.Item2.ToString())
+                .Select(x => x.transform).First();
+
+            GameObject childLR = new GameObject(parent.name + "_" + otherGO.name);
+            childLR.transform.parent = parent;
+
+            LineRenderer lr = childLR.AddComponent<LineRenderer>();
+            lr.material = edgeMat;
+            lr.widthCurve = AnimationCurve.Constant(0, 1, 0.01f);
+            lr.positionCount = 2;
+            lr.SetPositions(new Vector3[2] { parent.transform.position + new Vector3(0f, 0.5f, 0f), 
+                otherGO.transform.position + new Vector3(0f, 0.5f, 0f) });
+
         }
+
     }
 }
 
 public class NavMeshPolygon
 {
-    public NavMeshPolygon(Vector3 v1, Vector3 v2, Vector3 v3)
+    public NavMeshPolygon(Vector3 v1, Vector3 v2, Vector3 v3, float cost = 1f)
     {
         V1 = v1;
         V2 = v2;
         V3 = v3;
+        Cost = cost;
 
         Id = GetID();
     }
 
     public int GetID()
     {
-        Id = 0;
-        Id ^= V1.GetHashCode();
-        Id ^= V2.GetHashCode();
-        Id ^= V3.GetHashCode();
+        return HashCode.Combine(V1, V2, V3, Cost);
+    }
 
-        return Id;
+    public Vector3 GetBarycenter()
+    {
+        return (V1 + V2 + V3) / 3f;
     }
 
     public bool IsAdjacent(NavMeshPolygon other)
     {
-        return V1 == other.V1 ||
-            V1 == other.V2 ||
-            V1 == other.V3 ||
-            V1 == other.V1 ||
-            V2 == other.V1 ||
-            V2 == other.V2 ||
-            V2 == other.V3 ||
-            V3 == other.V1 ||
-            V3 == other.V2 ||
-            V3 == other.V3;
+
+        return (
+            (V1 == other.V1 || V1 == other.V2 || V1 == other.V3) &&
+            (V2 == other.V1 || V2 == other.V2 || V2 == other.V3) ||
+            (V3 == other.V1 || V3 == other.V2 || V3 == other.V3)
+            ) && !this.Equals(other);
+    }
+
+    public override bool Equals(object obj)
+    {
+        return obj is NavMeshPolygon polygon &&
+               V1.Equals(polygon.V1) &&
+               V2.Equals(polygon.V2) &&
+               V3.Equals(polygon.V3) &&
+               Id == polygon.Id &&
+               Cost == polygon.Cost;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(V1, V2, V3, Id, Cost);
     }
 
     public Vector3 V1 { get; set; }
     public Vector3 V2 { get; set; }
     public Vector3 V3 { get; set; }
     public int Id { get; set; }
+    public float Cost { get; set; }
 }
 
 public class PolygonEdge
 {
     public float Weight { get; set; }
+    //(int, int) DirectionalId { get; set; }
     public int Id { get; set; }
+    public bool Directional { get; set; }
 
-    public PolygonEdge(float weight)
+    public PolygonEdge(int from, int to, float weight = 1f, bool directional = false)
     {
-        this.Weight = weight;
-
-        Id = GetID();
+        Weight = weight;
+        Directional = directional;
+        Id = Directional ? ComputeDirectionalId(from, to) : ComputeId(from, to);
     }
 
-    public int GetID()
+    int ComputeId(int from, int to)
     {
-        Id = 0;
-        Id ^= Weight.GetHashCode();
+        return HashCode.Combine(Weight, from, to, Directional);
+    }
 
-        return Id;
+    int ComputeDirectionalId(int from, int to)
+    {
+
+        return HashCode.Combine(Weight, from.ToString() + to.ToString(), Directional);
+    }
+
+    public override bool Equals(object obj)
+    {
+        return obj is PolygonEdge edge &&
+               Weight == edge.Weight &&
+               Id == edge.Id &&
+               Directional == edge.Directional;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Weight, Id, Directional);
     }
 }

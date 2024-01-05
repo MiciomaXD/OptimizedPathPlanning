@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Timers;
 using UnityEditor.ShaderGraph.Internal;
 using UnityEngine;
+using UnityEngine.Animations;
 
 public class RandomMapGenerator : MonoBehaviour
 {
@@ -23,8 +24,7 @@ public class RandomMapGenerator : MonoBehaviour
     float minX, maxX, minY, maxY, minZ, maxZ;
     System.Random rng;
 
-    // Start is called before the first frame update
-    void Start()
+    private void Awake()
     {
         rng = new System.Random(seed);
 
@@ -39,7 +39,7 @@ public class RandomMapGenerator : MonoBehaviour
         maxY = mapBounds.max.y;
         maxZ = mapBounds.max.z;
 
-        //StartCoroutine(DoCreateMap(5f));
+        //StartCoroutine(DoCreateMap(5f));  
     }
 
     IEnumerator DoCreateMap(float wait)
@@ -53,7 +53,10 @@ public class RandomMapGenerator : MonoBehaviour
         }
     }
 
-    private void CreateMap()
+    /// <summary>
+    /// Creates a random level with a newly baked navmesh in place.
+    /// </summary>
+    public void CreateMap()
     {
         DestroyObstacles();
 
@@ -101,7 +104,10 @@ public class RandomMapGenerator : MonoBehaviour
         obj.transform.localScale = new(minScale + (float)rng.NextDouble() * (maxScale - minScale), minScale + (float)rng.NextDouble() * (maxScale - minScale), minScale + (float)rng.NextDouble() * (maxScale - minScale));
         obj.transform.parent = parentOfObstacles;
 
-        //random y rot
-        obj.transform.rotation = Quaternion.AngleAxis((float)rng.NextDouble() * 360, Vector3.up);
+        //random rot
+        //obj.transform.rotation = Quaternion.AngleAxis((float)rng.NextDouble() * 360, Vector3.up);
+        obj.transform.rotation = Quaternion.Euler(new Vector3((float)rng.NextDouble() * 360, (float)rng.NextDouble() * 360, (float)rng.NextDouble() * 360));
+        
+
     }
 }
