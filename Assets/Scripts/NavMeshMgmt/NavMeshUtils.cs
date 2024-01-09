@@ -4,11 +4,18 @@ using UnityEngine.AI;
 
 public static class NavMeshUtils
 {
-    public static void BakeNavMesh()
+    public static void BakeNavMesh(bool update = true)
     {
         NavMeshSurface nvs = GameObject.FindFirstObjectByType<NavMeshSurface>();
         if (nvs != null)
+        {
+            /*if (update)
+                nvs.UpdateNavMesh(nvs.navMeshData);
+            else
+                nvs.BuildNavMesh();*/
+
             nvs.BuildNavMesh();
+        }
         else
             Debug.LogError("There is no NavMeshSurface component in the scene.");
     }
@@ -40,7 +47,7 @@ public static class NavMeshUtils
         GameObject navMeshObject = GameObject.Find("NavMeshVisualizer");
         if (navMeshObject != null)
             GameObject.Destroy(navMeshObject);
-        
+
         navMeshObject = new GameObject("NavMeshVisualizer");
         navMeshObject.AddComponent<MeshFilter>().mesh = m;
         navMeshObject.AddComponent<MeshRenderer>();

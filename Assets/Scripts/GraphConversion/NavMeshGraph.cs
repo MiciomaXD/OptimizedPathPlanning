@@ -77,6 +77,17 @@ public class NavMeshGraph
         }
     }
 
+    /// <summary>
+    /// Return ids of all nodes reachable from current (in case of directional graphs only children are returned) 
+    /// </summary>
+    /// <param name="current"></param>
+    /// <returns></returns>
+    public List<int> GetNeighbours(int current)
+    {
+        return connectivity.Where(x => x.Key.Item1 == current)
+            .Select(x => x.Key.Item2).ToList();
+    }
+
     public void VisualizeGraphInScene(Material edgeMat)
     {
         GameObject gRoot = new GameObject("GraphVisRoot");
@@ -116,7 +127,7 @@ public class NavMeshGraph
             lr.material = edgeMat;
             lr.widthCurve = AnimationCurve.Constant(0, 1, 0.01f);
             lr.positionCount = 2;
-            lr.SetPositions(new Vector3[2] { parent.transform.position + new Vector3(0f, 0.5f, 0f), 
+            lr.SetPositions(new Vector3[2] { parent.transform.position + new Vector3(0f, 0.5f, 0f),
                 otherGO.transform.position + new Vector3(0f, 0.5f, 0f) });
 
         }
@@ -148,12 +159,23 @@ public class NavMeshPolygon
 
     public bool IsAdjacent(NavMeshPolygon other)
     {
+        /*
+        if (this.Equals(other))
+            return false;*/
 
-        return (
-            (V1 == other.V1 || V1 == other.V2 || V1 == other.V3) &&
-            (V2 == other.V1 || V2 == other.V2 || V2 == other.V3) ||
-            (V3 == other.V1 || V3 == other.V2 || V3 == other.V3)
-            ) && !this.Equals(other);
+        Vector3[] t1 = new Vector3[3] { V1, V2, V3 };
+        Vector3[] t2 = new Vector3[3] { other.V1, other.V2, other.V3 };
+        /*return (from v1 in t1
+                from v2 in t2
+                where v1 == v2
+                select v1).Count() == 2;*/
+        //in maniera lambda - migliore - viene
+        return t1.SelectMany(v1 => t2, (v1,v2) => (v1,v2))
+            .Where(x => x.v1 == x.v2).Count()==2; //posso evitare anche il check di uguaglianza a
+                                                  //se stesso perchè ==2 (una regione controntata con
+                                                  //se stessa ha tutti e tre i vertici uguali e non
+                                                  //deve essere adiacente a se stessa)
+
     }
 
     public override bool Equals(object obj)
