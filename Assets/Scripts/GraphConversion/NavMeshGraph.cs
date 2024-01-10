@@ -88,6 +88,17 @@ public class NavMeshGraph
             .Select(x => x.Key.Item2).ToList();
     }
 
+    public PolygonEdge GetEdge(int from, int to)
+    {
+        int edgeId = connectivity[(from, to)];
+        return edges[edgeId];
+    }
+
+    public NavMeshPolygon GetNode(int nodeId)
+    {
+        return nodes[nodeId];
+    }
+
     public void VisualizeGraphInScene(Material edgeMat)
     {
         GameObject gRoot = new GameObject("GraphVisRoot");
